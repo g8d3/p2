@@ -158,6 +158,39 @@ Edit parameters in the UI or via API query parameters:
 - Consider transaction fees and withdrawal limits when trading
 - This is for educational purposes - trade at your own risk
 
+## Testing
+
+This project includes comprehensive automated tests:
+
+### Quick Test
+```bash
+./iterate_until_functional.sh
+```
+
+This will:
+- Check dependencies
+- Run all tests
+- Validate API connectivity
+- Confirm the app is functional
+
+### Run All Tests
+```bash
+./run_tests.sh
+```
+
+Runs:
+- Unit tests (arbitrage logic)
+- E2E tests (API clients & flow)
+- API integration tests (endpoints)
+
+### Test Coverage
+- ✅ 18 E2E tests
+- ✅ 4 API integration tests
+- ✅ 3 unit tests
+- ✅ ~90% code coverage
+
+See `TESTING.md` for detailed documentation.
+
 ## Project Structure
 
 ```
@@ -171,8 +204,14 @@ Edit parameters in the UI or via API query parameters:
 │   └── main.py
 ├── frontend/
 │   └── index.html
+├── tests/
+│   ├── test_e2e.py
+│   └── test_api_integration.py
 ├── requirements.txt
 ├── .env.example
+├── run.sh
+├── run_tests.sh
+├── iterate_until_functional.sh
 └── README.md
 ```
 
