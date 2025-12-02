@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loris Arbitrage Executor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e1a;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .opportunities {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .opportunities h2 {
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+        
+        .opportunity-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .opportunity-item:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-2px);
+        }
+        
+        .opportunity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .opportunity-symbol {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        .opportunity-profit {
+            font-weight: 700;
+            color: #4ade80;
+        }
+        
+        .opportunity-negative {
+            color: #ef4444;
+        }
+        
+        .opportunity-details {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 0.5rem;
+        }
+        
+        .execute-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .execute-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .execute-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #888;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-online {
+            background: #4ade80;
+        }
+        
+        .status-offline {
+            background: #ef4444;
+        }
+        
+        .executions {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        
+        .execution-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .execution-success {
+            border-left: 4px solid #4ade80;
+        }
+        
+        .execution-pending {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .execution-failed {
+            border-left: 4px solid #ef4444;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .opportunity-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🔄 Loris Arbitrage Executor</h1>
+        <p>
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="connectionStatus">Connecting...</span> | 
+            Last updated: <span id="lastUpdated">Never</span>
+        </p>
+    </header>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalOpportunities">0</div>
+                <div class="stat-label">Active Opportunities</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="bestProfit">0%</div>
+                <div class="stat-label">Best Daily Profit</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalExchanges">0</div>
+                <div class="stat-label">Supported Exchanges</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="symbolsTracked">0</div>
+                <div class="stat-label">Symbols Tracked</div>
+            </div>
+        </div>
+
+        <div class="opportunities">
+            <h2>🎯 Arbitrage Opportunities</h2>
+            <div id="opportunitiesList" class="loading">
+                Loading opportunities...
+            </div>
+        </div>
+
+        <div class="executions">
+            <h2>⚡ Recent Executions</h2>
+            <div id="executionsList">
+                <div class="loading">No executions yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let executionsData = [];
+
+        const updateStats = (data) => {
+            const { fundingRates, arbitrageOpportunities } = data;
+            
+            document.getElementById('totalOpportunities').textContent = arbitrageOpportunities.length;
+            
+            if (arbitrageOpportunities.length > 0) {
+                const bestProfit = arbitrageOpportunities[0];
+                const profitPercent = (bestProfit.estimatedDailyProfit * 100).toFixed(4);
+                document.getElementById('bestProfit').textContent = profitPercent + '%';
+            }
+            
+            if (fundingRates.exchanges) {
+                document.getElementById('totalExchanges').textContent = fundingRates.exchanges.exchange_names.length;
+            }
+            
+            if (fundingRates.symbols) {
+                document.getElementById('symbolsTracked').textContent = fundingRates.symbols.length;
+            }
+            
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+        };
+
+        const renderOpportunities = (opportunities) => {
+            const container = document.getElementById('opportunitiesList');
+            
+            if (opportunities.length === 0) {
+                container.innerHTML = '<div class="loading">No opportunities available</div>';
+                return;
+            }
+            
+            container.innerHTML = opportunities.map(opp => `
+                <div class="opportunity-item">
+                    <div class="opportunity-header">
+                        <div class="opportunity-symbol">${opp.symbol}</div>
+                        <div class="opportunity-profit ${opp.estimatedDailyProfit < 0 ? 'opportunity-negative' : ''}">
+                            ${(opp.estimatedDailyProfit * 100).toFixed(4)}%
+                        </div>
+                    </div>
+                    <div class="opportunity-details">
+                        <div>${opp.lowestExchange}: ${(opp.lowestRate * 100).toFixed(4)}% → ${opp.highestExchange}: ${(opp.highestRate * 100).toFixed(4)}%</div>
+                        <div>Rate difference: ${opp.rateDifference.toFixed(6)}</div>
+                    </div>
+                    <button class="execute-btn" onclick="executeArbitrage('${opp.symbol}', '${opp.lowestExchange}', '${opp.highestExchange}')">
+                        Execute Arbitrage
+                    </button>
+                </div>
+            `).join('');
+        };
+
+        const renderExecutions = () => {
+            const container = document.getElementById('executionsList');
+            
+            if (executionsData.length === 0) {
+                container.innerHTML = '<div class="loading">No executions yet</div>';
+                return;
+            }
+            
+            container.innerHTML = executionsData.slice(-10).reverse().map(exec => `
+                <div class="execution-item execution-${exec.status}">
+                    <div class="opportunity-header">
+                        <div>
+                            <strong>${exec.symbol}</strong> ${exec.exchange1} ↔ ${exec.exchange2}
+                        </div>
+                        <div>
+                            ${exec.status === 'completed' ? `Profit: $${exec.profit.toFixed(2)}` : exec.status.toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="opportunity-details">
+                        Amount: $${exec.amount} | ${new Date(exec.timestamp).toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        const executeArbitrage = async (symbol, exchange1, exchange2) => {
+            const amount = prompt('Enter amount to trade (USD):', '1000');
+            
+            if (!amount || isNaN(amount)) return;
+            
+            try {
+                const response = await fetch('/api/execute-arbitrage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol,
+                        exchange1,
+                        exchange2,
+                        amount: parseFloat(amount)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const execution = {
+                        id: result.executionId,
+                        symbol,
+                        exchange1,
+                        exchange2,
+                        amount: parseFloat(amount),
+                        status: 'pending',
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    executionsData.push(execution);
+                    renderExecutions();
+                }
+            } catch (error) {
+                console.error('Error executing arbitrage:', error);
+            }
+        };
+
+        socket.on('connect', () => {
+            document.getElementById('statusIndicator').className = 'status-indicator status-online';
+            document.getElementById('connectionStatus').textContent = 'Connected';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('statusIndicator').className = 'status-indicator status-offline';
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+        });
+
+        socket.on('initialData', (data) => {
+            updateStats(data);
+            renderOpportunities(data.arbitrageOpportunities);
+        });
+
+        socket.on('fundingRatesUpdate', (data) => {
+            updateStats(data);
+            renderOpportunities(data.arbitrageOpportunities);
+        });
+
+        socket.on('executionUpdate', (execution) => {
+            const index = executionsData.findIndex(e => e.id === execution.id);
+            if (index !== -1) {
+                executionsData[index] = execution;
+                renderExecutions();
+            }
+        });
+
+        socket.on('error', (error) => {
+            console.error('Server error:', error);
+        });
+    </script>
+</body>
+</html>
