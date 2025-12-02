@@ -1,0 +1,11 @@
+# Environment variables
+.env
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+.DS_Store
+.node_modules/
